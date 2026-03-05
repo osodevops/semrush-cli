@@ -1,19 +1,14 @@
-#![allow(dead_code)]
+use semrush::api;
+use semrush::batch;
+use semrush::cache::DiskCache;
+use semrush::cli;
+use semrush::cli::{CacheCommand, Cli, Commands};
+use semrush::config::Config;
+use semrush::error::AppError;
+use semrush::output;
+use semrush::output::OutputFormat;
 
-mod api;
-mod batch;
-mod cache;
-mod cli;
-mod config;
-mod error;
-mod output;
-
-use cache::DiskCache;
 use clap::Parser;
-use cli::{CacheCommand, Cli, Commands};
-use config::Config;
-use error::AppError;
-use output::OutputFormat;
 use tracing_subscriber::EnvFilter;
 
 /// Result of command resolution: the report type key and the data.

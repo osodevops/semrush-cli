@@ -1,14 +1,22 @@
 [package]
 name = "semrush-rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.80.0"
 description = "A high-performance, agent-friendly CLI for the Semrush API"
 license = "MIT"
 
+[lib]
+name = "semrush"
+path = "src/lib.rs"
+
 [[bin]]
 name = "semrush"
 path = "src/main.rs"
+
+[[bin]]
+name = "gen-man"
+path = "src/bin/gen-man.rs"
 
 [dependencies]
 # CLI
@@ -51,6 +59,9 @@ indicatif = "0.17"
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }
+
+# Man pages
+clap_mangen = "0.2"
 
 [dev-dependencies]
 assert_cmd = "2"

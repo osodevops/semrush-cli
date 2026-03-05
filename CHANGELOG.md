@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1]
+
+- Add README with agent integration docs and full command reference
+- Add man page generation (`cargo run --bin gen-man`)
+- Add library crate for programmatic access
+- Fix clippy and formatting for CI compliance
+
 ## [0.1.0]
 
 - Initial release
