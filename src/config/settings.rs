@@ -82,7 +82,7 @@ fn default_database() -> String {
     "us".to_string()
 }
 fn default_output() -> String {
-    "json".to_string()
+    "auto".to_string()
 }
 fn default_limit() -> u32 {
     100

@@ -20,8 +20,7 @@ impl OutputFormat {
             Some("table") => OutputFormat::Table,
             Some("csv") => OutputFormat::Csv,
             Some("jsonl") => OutputFormat::Jsonl,
-            Some(_) => OutputFormat::Json,
-            None => {
+            Some("auto") | None => {
                 // Auto-detect: table for TTY, JSON for pipes
                 if std::io::stdout().is_terminal() {
                     OutputFormat::Table
@@ -29,6 +28,7 @@ impl OutputFormat {
                     OutputFormat::Json
                 }
             }
+            Some(_) => OutputFormat::Json,
         }
     }
 }

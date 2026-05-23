@@ -128,7 +128,8 @@ async fn execute_step(
             .unwrap_or(default)
     };
 
-    let report_type_key = command_to_report_type_key(&step.command);
+    let normalized_command = normalize_command(&step.command);
+    let report_type_key = command_to_report_type_key(&normalized_command);
     let cache_key = format!("batch|{}|{:?}", report_type_key, args);
 
     // Check cache
@@ -144,7 +145,7 @@ async fn execute_step(
     let limit = get_u32("limit", 100);
     let offset = get_u32("offset", 0);
 
-    let data: Vec<serde_json::Value> = match step.command.as_str() {
+    let data: Vec<serde_json::Value> = match normalized_command.as_str() {
         "domain overview" => {
             let domain = get_str("domain").ok_or(AppError::InvalidParams {
                 message: "Missing 'domain' arg in step".to_string(),
@@ -241,9 +242,9 @@ async fn execute_step(
             crate::api::v3_trends::summary(client, &targets, country.as_deref(), None, None, limit)
                 .await?
         }
-        other => {
+        _ => {
             return Err(AppError::InvalidParams {
-                message: format!("Unknown batch command: '{other}'. Supported: domain overview, domain organic, domain paid, domain competitors organic/paid, keyword overview, keyword related, backlink overview, backlink list, trends summary"),
+                message: format!("Unknown batch command: '{}'. Supported: domain overview, domain organic, domain paid, domain competitors organic/paid, keyword overview, keyword related, backlink overview, backlink list, trends summary", step.command),
             });
         }
     };
@@ -262,7 +263,7 @@ async fn execute_step(
 
 /// Map batch command strings to report type keys for cost estimation.
 fn command_to_report_type_key(command: &str) -> String {
-    match command {
+    match normalize_command(command).as_str() {
         "domain overview" => "domain_overview",
         "domain organic" => "domain_organic",
         "domain paid" => "domain_paid",
@@ -276,4 +277,34 @@ fn command_to_report_type_key(command: &str) -> String {
         _ => "unknown",
     }
     .to_string()
+}
+
+fn normalize_command(command: &str) -> String {
+    command
+        .trim()
+        .replace('_', " ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn command_to_report_type_key_accepts_readme_style_names() {
+        assert_eq!(
+            command_to_report_type_key("domain_overview"),
+            "domain_overview"
+        );
+        assert_eq!(
+            command_to_report_type_key("domain organic"),
+            "domain_organic"
+        );
+        assert_eq!(
+            command_to_report_type_key("domain_competitors_organic"),
+            "domain_competitors_organic"
+        );
+    }
 }
