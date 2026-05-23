@@ -33,10 +33,14 @@ pub enum AppError {
 impl AppError {
     pub fn exit_code(&self) -> i32 {
         match self {
-            AppError::InvalidParams { .. } => 2,
-            AppError::AuthFailed { .. } => 3,
-            AppError::InsufficientUnits { .. } => 4,
-            _ => 1,
+            AppError::AuthFailed { .. } => 1,
+            AppError::RateLimited { .. } => 2,
+            AppError::InvalidParams { .. } => 3,
+            AppError::InsufficientUnits { .. }
+            | AppError::ApiError { .. }
+            | AppError::ParseError { .. }
+            | AppError::CacheError { .. }
+            | AppError::NetworkError { .. } => 4,
         }
     }
 
@@ -101,5 +105,43 @@ impl From<csv::Error> for AppError {
         AppError::ParseError {
             message: format!("CSV parse error: {err}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exit_codes_match_documented_contract() {
+        assert_eq!(
+            AppError::AuthFailed {
+                message: String::new()
+            }
+            .exit_code(),
+            1
+        );
+        assert_eq!(
+            AppError::RateLimited {
+                retry_after_ms: 1000,
+                api_status_code: 429
+            }
+            .exit_code(),
+            2
+        );
+        assert_eq!(
+            AppError::InvalidParams {
+                message: String::new()
+            }
+            .exit_code(),
+            3
+        );
+        assert_eq!(
+            AppError::NetworkError {
+                message: String::new()
+            }
+            .exit_code(),
+            4
+        );
     }
 }

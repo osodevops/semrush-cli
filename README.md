@@ -52,31 +52,31 @@ enabled = true
 
 ```bash
 # Domain overview
-semrush domain overview --domain example.com
+semrush domain overview example.com
 
 # Organic keywords for a domain
-semrush domain organic --domain example.com --limit 20
+semrush domain organic example.com --limit 20
 
 # Keyword research
-semrush keyword overview --phrase "rust programming"
+semrush keyword overview "rust programming"
 
 # Related keywords
-semrush keyword related --phrase "machine learning" --limit 50
+semrush keyword related "machine learning" --limit 50
 
 # Backlink profile
-semrush backlink overview --target example.com
+semrush backlink overview example.com
 
 # Traffic trends
-semrush trends summary --targets "example.com,competitor.com"
+semrush trends summary example.com competitor.com
 
 # Different regional database
-semrush domain overview --domain example.de --database de
+semrush domain overview example.de --database de
 
 # CSV output for spreadsheets
-semrush domain organic --domain example.com --output csv > keywords.csv
+semrush domain organic example.com --output csv > keywords.csv
 
 # Dry run -- estimate API cost without making the call
-semrush domain organic --domain example.com --dry-run
+semrush domain organic example.com --dry-run
 ```
 
 ## AI Agent Integration
@@ -89,16 +89,16 @@ Output auto-detects: **table** for terminals, **JSON** for pipes. Force a format
 
 ```bash
 # JSON with metadata envelope (default when piped)
-semrush domain overview --domain example.com | jq '.data[0].organic_keywords'
+semrush domain overview example.com | jq '.data[0].organic_keywords'
 
 # JSON Lines for streaming processing
-semrush domain organic --domain example.com --output jsonl
+semrush domain organic example.com --output jsonl
 
 # CSV for data pipelines
-semrush domain organic --domain example.com --output csv
+semrush domain organic example.com --output csv
 
 # Table for human reading
-semrush domain overview --domain example.com --output table
+semrush domain overview example.com --output table
 ```
 
 JSON output includes a `_meta` envelope with timing, cache status, and cost:
@@ -131,16 +131,16 @@ JSON output includes a `_meta` envelope with timing, cache status, and cost:
 
 ```bash
 # Step 1: Get domain overview
-OVERVIEW=$(semrush domain overview --domain competitor.com --output json)
+OVERVIEW=$(semrush domain overview competitor.com --output json)
 
 # Step 2: Get their top organic keywords
-KEYWORDS=$(semrush domain organic --domain competitor.com --limit 50 --output json)
+KEYWORDS=$(semrush domain organic competitor.com --limit 50 --output json)
 
 # Step 3: Check difficulty of a specific keyword
-DIFFICULTY=$(semrush keyword difficulty --phrase "target keyword")
+DIFFICULTY=$(semrush keyword difficulty "target keyword")
 
 # Step 4: Analyze backlink profile
-BACKLINKS=$(semrush backlink overview --target competitor.com)
+BACKLINKS=$(semrush backlink overview competitor.com)
 ```
 
 ### Batch recipes
@@ -171,10 +171,10 @@ limit = 50
 
 ```bash
 # Run the recipe
-semrush batch run --file competitor-audit.toml --var domain=example.com --var database=us
+semrush batch run competitor-audit.toml --var domain=example.com --var database=us
 
 # Estimate cost first
-semrush batch estimate --file competitor-audit.toml --var domain=example.com
+semrush batch estimate competitor-audit.toml --var domain=example.com
 ```
 
 ## Commands
@@ -182,68 +182,68 @@ semrush batch estimate --file competitor-audit.toml --var domain=example.com
 ### Domain Analytics
 
 ```bash
-semrush domain overview     --domain <DOMAIN>   # Traffic, rank, keywords count
-semrush domain organic      --domain <DOMAIN>   # Organic keyword positions
-semrush domain paid         --domain <DOMAIN>   # Paid search keywords
-semrush domain competitors  organic --domain <DOMAIN>  # Organic competitors
-semrush domain ads-copies   --domain <DOMAIN>   # Ad copy texts
-semrush domain ad-history   --domain <DOMAIN>   # Historical ad data
-semrush domain pla-keywords --domain <DOMAIN>   # Product listing ad keywords
-semrush domain pla-copies   --domain <DOMAIN>   # PLA ad copies
-semrush domain pla-competitors --domain <DOMAIN> # PLA competitors
-semrush domain pages        --domain <DOMAIN>   # Top pages by traffic
-semrush domain subdomains   --domain <DOMAIN>   # Subdomain breakdown
-semrush domain compare      --domains <D1,D2>   # Compare domains
+semrush domain overview     <DOMAIN>       # Traffic, rank, keywords count
+semrush domain organic      <DOMAIN>       # Organic keyword positions
+semrush domain paid         <DOMAIN>       # Paid search keywords
+semrush domain competitors  organic <DOMAIN>  # Organic competitors
+semrush domain ads-copies   <DOMAIN>       # Ad copy texts
+semrush domain ad-history   <DOMAIN>       # Historical ad data
+semrush domain pla-keywords <DOMAIN>       # Product listing ad keywords
+semrush domain pla-copies   <DOMAIN>       # PLA ad copies
+semrush domain pla-competitors <DOMAIN>    # PLA competitors
+semrush domain pages        <DOMAIN>       # Top pages by traffic
+semrush domain subdomains   <DOMAIN>       # Subdomain breakdown
+semrush domain compare      <D1> <D2>      # Compare domains
 ```
 
 ### Keyword Research
 
 ```bash
-semrush keyword overview    --phrase <KEYWORD>   # Volume, CPC, difficulty
-semrush keyword batch       --phrases <K1,K2>    # Bulk keyword lookup
-semrush keyword organic     --phrase <KEYWORD>   # Domains ranking for keyword
-semrush keyword paid        --phrase <KEYWORD>   # Paid results for keyword
-semrush keyword related     --phrase <KEYWORD>   # Related keywords
-semrush keyword broad-match --phrase <KEYWORD>   # Broad match keywords
-semrush keyword questions   --phrase <KEYWORD>   # Question-based keywords
-semrush keyword difficulty  --phrase <KEYWORD>   # Difficulty score (0-100)
-semrush keyword ad-history  --phrase <KEYWORD>   # Historical ad data
+semrush keyword overview    <KEYWORD>      # Volume, CPC, difficulty
+semrush keyword batch       <K1> <K2>      # Bulk keyword lookup
+semrush keyword organic     <KEYWORD>      # Domains ranking for keyword
+semrush keyword paid        <KEYWORD>      # Paid results for keyword
+semrush keyword related     <KEYWORD>      # Related keywords
+semrush keyword broad-match <KEYWORD>      # Broad match keywords
+semrush keyword questions   <KEYWORD>      # Question-based keywords
+semrush keyword difficulty  <KEYWORD>      # Difficulty score (0-100)
+semrush keyword ad-history  <KEYWORD>      # Historical ad data
 ```
 
 ### Backlink Analytics
 
 ```bash
-semrush backlink overview           --target <DOMAIN>  # Total backlinks, authority
-semrush backlink list               --target <DOMAIN>  # Individual backlinks
-semrush backlink referring-domains  --target <DOMAIN>  # Referring domains
-semrush backlink referring-ips      --target <DOMAIN>  # Referring IPs
-semrush backlink anchors            --target <DOMAIN>  # Anchor text distribution
-semrush backlink tld-distribution   --target <DOMAIN>  # TLD breakdown
-semrush backlink geo                --target <DOMAIN>  # Geographic distribution
-semrush backlink indexed-pages      --target <DOMAIN>  # Indexed pages
-semrush backlink competitors        --target <DOMAIN>  # Backlink competitors
-semrush backlink compare            --targets <D1,D2>  # Compare targets
-semrush backlink batch              --targets <D1,D2>  # Bulk overview
-semrush backlink new                --target <DOMAIN>  # New backlinks
-semrush backlink lost               --target <DOMAIN>  # Lost backlinks
-semrush backlink categories         --target <DOMAIN>  # Category distribution
-semrush backlink history            --target <DOMAIN>  # Historical data
+semrush backlink overview           <DOMAIN>      # Total backlinks, authority
+semrush backlink list               <DOMAIN>      # Individual backlinks
+semrush backlink referring-domains  <DOMAIN>      # Referring domains
+semrush backlink referring-ips      <DOMAIN>      # Referring IPs
+semrush backlink anchors            <DOMAIN>      # Anchor text distribution
+semrush backlink tld-distribution   <DOMAIN>      # TLD breakdown
+semrush backlink geo                <DOMAIN>      # Geographic distribution
+semrush backlink indexed-pages      <DOMAIN>      # Indexed pages
+semrush backlink competitors        <DOMAIN>      # Backlink competitors
+semrush backlink compare            <D1> <D2>     # Compare targets
+semrush backlink batch              <D1> <D2>     # Bulk overview
+semrush backlink authority-score    <DOMAIN>      # Authority score
+semrush backlink categories         <DOMAIN>      # Category distribution
+semrush backlink category-profile   <DOMAIN>      # Category profile
+semrush backlink history            <DOMAIN>      # Historical data
 ```
 
 ### Traffic Trends
 
 ```bash
-semrush trends summary      --targets <DOMAINS>  # Visits, bounce rate, pages/visit
-semrush trends daily        --targets <DOMAINS>  # Daily traffic data
-semrush trends weekly       --targets <DOMAINS>  # Weekly traffic data
-semrush trends sources      --target <DOMAIN>    # Traffic source breakdown
-semrush trends destinations --target <DOMAIN>    # Outgoing traffic destinations
-semrush trends geo          --target <DOMAIN>    # Geographic distribution
-semrush trends subdomains   --target <DOMAIN>    # Subdomain traffic
-semrush trends top-pages    --target <DOMAIN>    # Top pages by traffic
-semrush trends rank         --target <DOMAIN>    # Traffic rank
-semrush trends categories   --target <DOMAIN>    # Category breakdown
-semrush trends conversion   --target <DOMAIN>    # Conversion data
+semrush trends summary      <DOMAIN1> [DOMAIN2]  # Visits, bounce rate, pages/visit
+semrush trends daily        <DOMAIN>             # Daily traffic data
+semrush trends weekly       <DOMAIN>             # Weekly traffic data
+semrush trends sources      <DOMAIN>             # Traffic source breakdown
+semrush trends destinations <DOMAIN>             # Outgoing traffic destinations
+semrush trends geo          <DOMAIN>             # Geographic distribution
+semrush trends subdomains   <DOMAIN>             # Subdomain traffic
+semrush trends top-pages    <DOMAIN>             # Top pages by traffic
+semrush trends rank                              # Traffic rank
+semrush trends categories   <CATEGORY>           # Category breakdown
+semrush trends conversion   <DOMAIN>             # Conversion data
 ```
 
 ### Project Management (v4 API)
@@ -252,21 +252,21 @@ Requires OAuth2 token (`SEMRUSH_OAUTH_TOKEN` env var):
 
 ```bash
 semrush project list
-semrush project get --id <PROJECT_ID>
+semrush project get <PROJECT_ID>
 semrush project create --name "My Project" --domain example.com
-semrush project update --id <PROJECT_ID> --name "New Name"
-semrush project delete --id <PROJECT_ID>
+semrush project update <PROJECT_ID> --name "New Name"
+semrush project delete <PROJECT_ID>
 ```
 
 ### Local SEO (v4 API)
 
 ```bash
 semrush local listing list
-semrush local listing get --id <LISTING_ID>
+semrush local listing get <LISTING_ID>
 semrush local listing create --json '{"name": "Business"}'
 semrush local map-rank campaigns
-semrush local map-rank keywords --campaign-id <ID>
-semrush local map-rank heatmap --campaign-id <ID> --keyword-id <KID>
+semrush local map-rank keywords <CAMPAIGN_ID>
+semrush local map-rank heatmap <CAMPAIGN_ID>
 ```
 
 ### Utility

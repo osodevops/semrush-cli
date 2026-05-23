@@ -69,6 +69,11 @@ async fn main() {
             return;
         }
         Commands::Batch { command } => {
+            if matches!(command, cli::batch::BatchCommand::Estimate { .. }) {
+                handle_batch_estimate(command);
+                return;
+            }
+
             let api_key = match config.resolve_api_key(cli.api_key.as_deref()) {
                 Some(key) => key,
                 None => {
@@ -88,7 +93,18 @@ async fn main() {
         _ => {}
     }
 
-    // All remaining commands need an API key
+    // Resolve the report type for this command
+    let report_type_key = resolve_report_type_key(&cli);
+
+    // Handle --dry-run before auth: cost estimation does not call the API.
+    if cli.dry_run {
+        let report_type = api::cost::report_type_for_command(&report_type_key);
+        let estimate = api::cost::estimate(report_type, cli.limit);
+        println!("{estimate}");
+        return;
+    }
+
+    // All remaining executable API commands need an API key
     let api_key = match config.resolve_api_key(cli.api_key.as_deref()) {
         Some(key) => key,
         None => {
@@ -98,17 +114,6 @@ async fn main() {
             .print_and_exit();
         }
     };
-
-    // Resolve the report type for this command
-    let report_type_key = resolve_report_type_key(&cli);
-
-    // Handle --dry-run: estimate cost and exit
-    if cli.dry_run {
-        let report_type = api::cost::report_type_for_command(&report_type_key);
-        let estimate = api::cost::estimate(report_type, cli.limit);
-        println!("{estimate}");
-        return;
-    }
 
     let client = api::client::SemrushClient::new(api_key, config.rate_limit.requests_per_second);
 
@@ -993,29 +998,37 @@ async fn handle_batch(
                 Err(e) => e.print_and_exit(),
             }
         }
-        BatchCommand::Estimate { recipe, vars } => {
-            let var_map = cli::batch::parse_vars(vars);
-            let mut rec = match batch::Recipe::load(recipe) {
-                Ok(r) => r,
-                Err(e) => e.print_and_exit(),
-            };
-            rec.substitute_vars(&var_map);
-            let estimates = rec.estimate();
-            let mut total = 0u64;
-            for (i, est) in estimates.iter().enumerate() {
-                println!(
-                    "Step {} ({}): {} units ({})",
-                    i + 1,
-                    est.command,
-                    est.estimated_units,
-                    est.description
-                );
-                total += est.estimated_units;
-            }
-            println!("{}", "─".repeat(50));
-            println!("Total estimated cost: {total} units");
+        BatchCommand::Estimate { .. } => {
+            handle_batch_estimate(command);
         }
     }
+}
+
+fn handle_batch_estimate(command: &cli::batch::BatchCommand) {
+    let cli::batch::BatchCommand::Estimate { recipe, vars } = command else {
+        return;
+    };
+
+    let var_map = cli::batch::parse_vars(vars);
+    let mut rec = match batch::Recipe::load(recipe) {
+        Ok(r) => r,
+        Err(e) => e.print_and_exit(),
+    };
+    rec.substitute_vars(&var_map);
+    let estimates = rec.estimate();
+    let mut total = 0u64;
+    for (i, est) in estimates.iter().enumerate() {
+        println!(
+            "Step {} ({}): {} units ({})",
+            i + 1,
+            est.command,
+            est.estimated_units,
+            est.description
+        );
+        total += est.estimated_units;
+    }
+    println!("{}", "-".repeat(50));
+    println!("Total estimated cost: {total} units");
 }
 
 async fn handle_account(command: &cli::account::AccountCommand, _cli: &Cli, config: &Config) {
