@@ -6,7 +6,11 @@ permissions:
 on:
   push:
     tags:
-      - v[0-9]+.*
+      - "v*.*.*"
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   create-release:
@@ -16,8 +20,12 @@ jobs:
 
       - name: Extract changelog
         run: |
+          set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
-          awk "/^## \\[${VERSION}\\]/{found=1; next} /^## \\[/{if(found) exit} found{print}" CHANGELOG.md > release_notes.md || echo "Release ${GITHUB_REF_NAME}" > release_notes.md
+          awk "/^## \\[${VERSION}\\]/{found=1; next} /^## \\[/{if(found) exit} found{print}" CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then
+            echo "Release ${GITHUB_REF_NAME}" > release_notes.md
+          fi
 
       - name: Create GitHub release
         env:
@@ -25,7 +33,8 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
-            --notes-file release_notes.md
+            --notes-file release_notes.md \
+            --verify-tag
 
   upload-assets:
     needs: create-release
@@ -53,11 +62,12 @@ jobs:
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
 
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --locked --release --target ${{ matrix.target }} --bin semrush
 
       - name: Package (unix)
         if: runner.os != 'Windows'
         run: |
+          set -euo pipefail
           cd target/${{ matrix.target }}/release
           tar czf ../../../semrush-${{ matrix.target }}.tar.gz semrush
 
@@ -72,6 +82,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           gh release upload "$GITHUB_REF_NAME" semrush-${{ matrix.target }}.* --clobber
 
   homebrew:
@@ -83,6 +94,11 @@ jobs:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           set -euo pipefail
+          if [ -z "${HOMEBREW_TAP_TOKEN}" ]; then
+            echo "HOMEBREW_TAP_TOKEN is not configured; skipping Homebrew tap update."
+            exit 0
+          fi
+
           VERSION="${GITHUB_REF_NAME#v}"
           BASE_URL="https://github.com/osodevops/semrush-cli/releases/download/${GITHUB_REF_NAME}"
 
@@ -129,10 +145,15 @@ jobs:
           sed -i 's/^          //' semrush.rb
 
           git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/osodevops/homebrew-tap.git" tap
+          mkdir -p tap/Formula
           cp semrush.rb tap/Formula/semrush.rb
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Formula/semrush.rb
+          if git diff --cached --quiet; then
+            echo "Homebrew formula already up to date."
+            exit 0
+          fi
           git commit -m "semrush ${VERSION}"
           git push

@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum DomainCommand {
     /// Get domain overview metrics (rank, traffic, keywords count)
     Overview {
@@ -90,7 +90,8 @@ pub enum DomainCommand {
 
     /// Compare domains (keyword gap analysis)
     Compare {
-        /// Domains to compare (2-5)
+        /// Domains to compare (2-5). The first domain is treated as the primary domain.
+        #[arg(required = true, num_args = 2..=5)]
         domains: Vec<String>,
 
         /// Comparison mode: shared, all, unique, untapped, missing, exclusive
@@ -103,7 +104,7 @@ pub enum DomainCommand {
     },
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum CompetitorsCommand {
     /// Organic search competitors
     Organic { domain: String },

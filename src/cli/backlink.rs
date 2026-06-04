@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum BacklinkCommand {
     /// Get backlink overview metrics (total backlinks, referring domains, authority score)
     Overview {
@@ -83,6 +83,7 @@ pub enum BacklinkCommand {
     /// Compare backlink profiles of multiple targets
     Compare {
         /// Targets to compare
+        #[arg(required = true, num_args = 2..)]
         targets: Vec<String>,
         #[arg(long, default_value = "root_domain")]
         target_type: String,
@@ -90,6 +91,7 @@ pub enum BacklinkCommand {
 
     /// Batch comparison of multiple targets (up to 200)
     Batch {
+        #[arg(required = true, num_args = 1..=200)]
         targets: Vec<String>,
         #[arg(long, default_value = "root_domain")]
         target_type: String,

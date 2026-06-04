@@ -126,6 +126,15 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_csv_human_headers() {
+        let csv = "Keyword;Search Volume;CPC\nrust programming;12100;2.45";
+        let rows = parse_csv_response(csv).unwrap();
+        assert_eq!(rows[0]["keyword"], "rust programming");
+        assert_eq!(rows[0]["search_volume"], 12100);
+        assert_eq!(rows[0]["cpc"], 2.45);
+    }
+
+    #[test]
     fn test_parse_csv_empty() {
         let rows = parse_csv_response("").unwrap();
         assert!(rows.is_empty());

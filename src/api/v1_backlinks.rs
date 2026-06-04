@@ -30,7 +30,7 @@ pub async fn overview(
     params.insert("target_type".to_string(), target_type.to_string());
     params.insert(
         "export_columns".to_string(),
-        "backlinks_num,domains_num,ips_num,follows_num,nofollows_num,texts_num,images_num,forms_num,frames_num,score".to_string(),
+        "ascore,total,domains_num,urls_num,ips_num,ipclassc_num,follows_num,nofollows_num,sponsored_num,ugc_num,texts_num,images_num,forms_num,frames_num".to_string(),
     );
     client.v1_backlinks("backlinks_overview", &params).await
 }
@@ -186,15 +186,17 @@ pub async fn compare(
     client: &SemrushClient,
     targets: &[String],
     target_type: &str,
+    limit: u32,
+    offset: u32,
 ) -> Result<Vec<serde_json::Value>, AppError> {
-    let mut params = HashMap::new();
-    params.insert("targets".to_string(), targets.join(","));
-    params.insert("target_type".to_string(), target_type.to_string());
-    params.insert(
+    let mut params = backlink_targets_params(targets, target_type);
+    params.push((
         "export_columns".to_string(),
-        "target,backlinks_num,domains_num,ips_num,follows_num,nofollows_num,score".to_string(),
-    );
-    client.v1_backlinks("backlinks_matrix", &params).await
+        "domain,domain_ascore,matches_num,backlinks_num".to_string(),
+    ));
+    params.push(("display_limit".to_string(), limit.to_string()));
+    params.push(("display_offset".to_string(), offset.to_string()));
+    client.v1_backlinks_pairs("backlinks_matrix", &params).await
 }
 
 pub async fn batch(
@@ -202,14 +204,14 @@ pub async fn batch(
     targets: &[String],
     target_type: &str,
 ) -> Result<Vec<serde_json::Value>, AppError> {
-    let mut params = HashMap::new();
-    params.insert("targets".to_string(), targets.join(","));
-    params.insert("target_type".to_string(), target_type.to_string());
-    params.insert(
+    let mut params = backlink_targets_params(targets, target_type);
+    params.push((
         "export_columns".to_string(),
-        "target,backlinks_num,domains_num,ips_num,score".to_string(),
-    );
-    client.v1_backlinks("backlinks_comparison", &params).await
+        "target,target_type,ascore,backlinks_num,domains_num,ips_num,follows_num,nofollows_num,texts_num,images_num,forms_num,frames_num".to_string(),
+    ));
+    client
+        .v1_backlinks_pairs("backlinks_comparison", &params)
+        .await
 }
 
 pub async fn authority_score(
@@ -234,6 +236,10 @@ pub async fn categories(
     let mut params = HashMap::new();
     params.insert("target".to_string(), target.to_string());
     params.insert("target_type".to_string(), target_type.to_string());
+    params.insert(
+        "export_columns".to_string(),
+        "category_name,rating".to_string(),
+    );
     client.v1_backlinks("backlinks_categories", &params).await
 }
 
@@ -244,7 +250,7 @@ pub async fn category_profile(
     limit: u32,
     offset: u32,
 ) -> Result<Vec<serde_json::Value>, AppError> {
-    let params = base_params(target, target_type, "", limit, offset);
+    let params = base_params(target, target_type, "category_name,rating", limit, offset);
     client
         .v1_backlinks("backlinks_categories_profile", &params)
         .await
@@ -265,4 +271,13 @@ pub async fn history(
         offset,
     );
     client.v1_backlinks("backlinks_historical", &params).await
+}
+
+fn backlink_targets_params(targets: &[String], target_type: &str) -> Vec<(String, String)> {
+    let mut params = Vec::with_capacity(targets.len() * 2);
+    for target in targets {
+        params.push(("targets[]".to_string(), target.clone()));
+        params.push(("target_types[]".to_string(), target_type.to_string()));
+    }
+    params
 }

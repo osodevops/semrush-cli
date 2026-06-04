@@ -224,31 +224,31 @@ semrush backlink indexed-pages      <DOMAIN>      # Indexed pages
 semrush backlink competitors        <DOMAIN>      # Backlink competitors
 semrush backlink compare            <D1> <D2>     # Compare targets
 semrush backlink batch              <D1> <D2>     # Bulk overview
-semrush backlink authority-score    <DOMAIN>      # Authority score
-semrush backlink categories         <DOMAIN>      # Category distribution
-semrush backlink category-profile   <DOMAIN>      # Category profile
+semrush backlink authority-score    <DOMAIN>      # Authority score profile
+semrush backlink category-profile   <DOMAIN>      # Referring-domain categories
+semrush backlink categories         <DOMAIN>      # Domain category distribution
 semrush backlink history            <DOMAIN>      # Historical data
 ```
 
 ### Traffic Trends
 
 ```bash
-semrush trends summary      <DOMAIN1> [DOMAIN2]  # Visits, bounce rate, pages/visit
-semrush trends daily        <DOMAIN>             # Daily traffic data
-semrush trends weekly       <DOMAIN>             # Weekly traffic data
-semrush trends sources      <DOMAIN>             # Traffic source breakdown
-semrush trends destinations <DOMAIN>             # Outgoing traffic destinations
-semrush trends geo          <DOMAIN>             # Geographic distribution
-semrush trends subdomains   <DOMAIN>             # Subdomain traffic
-semrush trends top-pages    <DOMAIN>             # Top pages by traffic
-semrush trends rank                              # Traffic rank
-semrush trends categories   <CATEGORY>           # Category breakdown
-semrush trends conversion   <DOMAIN>             # Conversion data
+semrush trends summary      <DOMAIN...>    # Visits, bounce rate, pages/visit
+semrush trends daily        <DOMAIN>       # Daily traffic data
+semrush trends weekly       <DOMAIN>       # Weekly traffic data
+semrush trends sources      <DOMAIN>       # Traffic source breakdown
+semrush trends destinations <DOMAIN>       # Outgoing traffic destinations
+semrush trends geo          <DOMAIN>       # Geographic distribution
+semrush trends subdomains   <DOMAIN>       # Subdomain traffic
+semrush trends top-pages    <DOMAIN>       # Top pages by traffic
+semrush trends rank                        # Traffic rank
+semrush trends categories   <CATEGORY>     # Category breakdown
+semrush trends conversion   <DOMAIN>       # Conversion data
 ```
 
-### Project Management (v4 API)
+### Project Management
 
-Requires OAuth2 token (`SEMRUSH_OAUTH_TOKEN` env var):
+Requires `SEMRUSH_API_KEY`:
 
 ```bash
 semrush project list
@@ -258,15 +258,19 @@ semrush project update <PROJECT_ID> --name "New Name"
 semrush project delete <PROJECT_ID>
 ```
 
-### Local SEO (v4 API)
+### Local SEO
 
 ```bash
+# Listing Management uses SEMRUSH_API_KEY
 semrush local listing list
-semrush local listing get <LISTING_ID>
+semrush local listing get <LOCATION_ID>
 semrush local listing create --json '{"name": "Business"}'
+
+# Map Rank Tracker uses SEMRUSH_OAUTH_TOKEN
 semrush local map-rank campaigns
 semrush local map-rank keywords <CAMPAIGN_ID>
-semrush local map-rank heatmap <CAMPAIGN_ID>
+semrush local map-rank heatmap <CAMPAIGN_ID> --keyword-id <KID> --cid <CID>
+semrush local map-rank competitors <CAMPAIGN_ID> --keyword-id <KID> --report-date <DATE>
 ```
 
 ### Utility
@@ -298,8 +302,8 @@ semrush completions <SHELL>      # Generate shell completions (bash/zsh/fish)
 
 | Variable | Description |
 |----------|-------------|
-| `SEMRUSH_API_KEY` | API key (required for v3 endpoints) |
-| `SEMRUSH_OAUTH_TOKEN` | OAuth2 token (required for v4 endpoints) |
+| `SEMRUSH_API_KEY` | API key for SEO, Trends, Projects, and Listing Management endpoints |
+| `SEMRUSH_OAUTH_TOKEN` | OAuth2 bearer token for Map Rank Tracker endpoints |
 | `SEMRUSH_DATABASE` | Default regional database |
 | `SEMRUSH_OUTPUT` | Default output format |
 

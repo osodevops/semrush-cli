@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum KeywordCommand {
     /// Get keyword metrics: search volume, CPC, difficulty, competition, intent
     Overview {
@@ -15,6 +15,7 @@ pub enum KeywordCommand {
     /// Get metrics for multiple keywords at once (up to 100)
     Batch {
         /// Keywords to analyze
+        #[arg(required = true, num_args = 1..=100)]
         phrases: Vec<String>,
     },
 

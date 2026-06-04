@@ -1,10 +1,11 @@
 use clap::Subcommand;
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum TrendsCommand {
     /// Get traffic summary for one or more domains (up to 200)
     Summary {
         /// Domains to analyze (comma-separated or multiple args)
+        #[arg(required = true, num_args = 1..=200)]
         targets: Vec<String>,
 
         /// Device type: desktop, mobile
@@ -25,13 +26,9 @@ pub enum TrendsCommand {
         /// Domain to analyze
         target: String,
 
-        /// Start date (YYYY-MM-DD)
-        #[arg(long)]
-        date_from: Option<String>,
-
-        /// End date (YYYY-MM-DD)
-        #[arg(long)]
-        date_to: Option<String>,
+        /// Month to report (YYYY-MM-01)
+        #[arg(long, alias = "date-from")]
+        date: Option<String>,
 
         /// Include forecasted data
         #[arg(long)]
@@ -48,11 +45,9 @@ pub enum TrendsCommand {
     Weekly {
         target: String,
 
-        #[arg(long)]
-        date_from: Option<String>,
-
-        #[arg(long)]
-        date_to: Option<String>,
+        /// Month to report (YYYY-MM-01)
+        #[arg(long, alias = "date-from")]
+        date: Option<String>,
 
         #[arg(long)]
         forecast: bool,

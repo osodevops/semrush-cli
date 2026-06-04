@@ -89,18 +89,8 @@ pub async fn domain_organic(
     if let Some(s) = sort {
         params.insert("display_sort".to_string(), s.to_string());
     }
-    for (i, f) in filters.iter().enumerate() {
-        params.insert(
-            format!(
-                "display_filter{}",
-                if i == 0 {
-                    String::new()
-                } else {
-                    format!("_{i}")
-                }
-            ),
-            f.clone(),
-        );
+    if !filters.is_empty() {
+        params.insert("display_filter".to_string(), filters.join("|"));
     }
 
     client.v3_analytics("domain_organic", &params).await
@@ -125,18 +115,8 @@ pub async fn domain_paid(
     if let Some(s) = sort {
         params.insert("display_sort".to_string(), s.to_string());
     }
-    for (i, f) in filters.iter().enumerate() {
-        params.insert(
-            format!(
-                "display_filter{}",
-                if i == 0 {
-                    String::new()
-                } else {
-                    format!("_{i}")
-                }
-            ),
-            f.clone(),
-        );
+    if !filters.is_empty() {
+        params.insert("display_filter".to_string(), filters.join("|"));
     }
     client.v3_analytics("domain_adwords", &params).await
 }
@@ -316,20 +296,52 @@ pub async fn domain_compare(
         columns::default_columns("domain_domains"),
     );
 
-    // domain_domains expects domains as: domains=d1|d2|d3|d4|d5
-    let domains_str = domains.join("|");
-    params.insert("domains".to_string(), domains_str);
+    let domain_type = match comparison_type.unwrap_or("organic") {
+        "paid" | "adwords" | "ads" => "ad",
+        _ => "or",
+    };
 
-    if let Some(m) = mode {
-        params.insert("display_filter".to_string(), format!("+|Se|{m}"));
-    }
-    if let Some(t) = comparison_type {
-        // organic or paid
-        let sign = if t == "paid" { "+" } else { "*" };
-        params.insert("sign".to_string(), sign.to_string());
-    }
+    params.insert(
+        "domains".to_string(),
+        build_domain_comparison(domains, mode.unwrap_or("shared"), domain_type),
+    );
 
     client.v3_analytics("domain_domains", &params).await
+}
+
+fn build_domain_comparison(domains: &[String], mode: &str, domain_type: &str) -> String {
+    let mut parts = Vec::with_capacity(domains.len());
+
+    match mode {
+        "unique" | "exclusive" => {
+            for (i, domain) in domains.iter().enumerate() {
+                parts.push(format!(
+                    "{}|{domain_type}|{domain}",
+                    if i == 0 { "*" } else { "-" }
+                ));
+            }
+        }
+        "missing" | "untapped" => {
+            for domain in domains.iter().skip(1) {
+                parts.push(format!("*|{domain_type}|{domain}"));
+            }
+            if let Some(primary) = domains.first() {
+                parts.push(format!("-|{domain_type}|{primary}"));
+            }
+        }
+        "all" => {
+            for domain in domains {
+                parts.push(format!("+|{domain_type}|{domain}"));
+            }
+        }
+        _ => {
+            for domain in domains {
+                parts.push(format!("*|{domain_type}|{domain}"));
+            }
+        }
+    }
+
+    parts.join("|")
 }
 
 // ── Keyword reports ────────────────────────────────────────────

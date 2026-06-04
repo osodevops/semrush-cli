@@ -14,13 +14,18 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          fetch-depth: 2
-          persist-credentials: false
+          fetch-depth: 0
 
       - name: Check version bump
         id: version
         run: |
-          OLD_VERSION=$(git diff HEAD~1 HEAD -- Cargo.toml | grep '^-version' | head -1 | sed 's/.*"\(.*\)".*/\1/' || echo "")
+          set -euo pipefail
+          BEFORE="${{ github.event.before }}"
+          if [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "${BEFORE}:Cargo.toml" 2>/dev/null; then
+            OLD_VERSION=$(git show "${BEFORE}:Cargo.toml" | grep '^version' | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          else
+            OLD_VERSION=""
+          fi
           NEW_VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
           if [ -n "$OLD_VERSION" ] && [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -33,7 +38,9 @@ jobs:
         if: steps.version.outputs.changed == 'true'
         id: tag-check
         run: |
-          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+          set -euo pipefail
+          git fetch --tags --force
+          if git rev-parse -q --verify "refs/tags/v${{ steps.version.outputs.version }}" >/dev/null; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -41,11 +48,9 @@ jobs:
 
       - name: Create and push tag
         if: steps.version.outputs.changed == 'true' && steps.tag-check.outputs.exists == 'false'
-        env:
-          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
           git push origin "v${{ steps.version.outputs.version }}"
