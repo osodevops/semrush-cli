@@ -62,4 +62,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          gh workflow run release.yml --ref "v${{ steps.version.outputs.version }}"
+          gh workflow run release.yml --ref "$GITHUB_REF_NAME" -f tag="v${{ steps.version.outputs.version }}"
