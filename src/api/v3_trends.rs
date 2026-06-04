@@ -26,14 +26,12 @@ pub async fn summary(
     country: Option<&str>,
     device: Option<&str>,
     date: Option<&str>,
-    limit: u32,
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let mut params = HashMap::new();
-    params.insert("target".to_string(), targets.join(","));
-    params.insert("display_limit".to_string(), limit.to_string());
+    params.insert("targets".to_string(), targets.join(","));
     params.insert(
         "export_columns".to_string(),
-        "target,visits,users,pages_per_visit,bounce_rate,avg_visit_duration".to_string(),
+        "target,visits,users,pages_per_visit,bounce_rate,time_on_site".to_string(),
     );
     add_common(&mut params, country, device, date);
     client.v3_trends("summary", &params).await
@@ -42,8 +40,7 @@ pub async fn summary(
 pub async fn daily(
     client: &SemrushClient,
     target: &str,
-    date_from: Option<&str>,
-    date_to: Option<&str>,
+    date: Option<&str>,
     forecast: bool,
     country: Option<&str>,
     device: Option<&str>,
@@ -52,13 +49,10 @@ pub async fn daily(
     params.insert("target".to_string(), target.to_string());
     params.insert(
         "export_columns".to_string(),
-        "date,visits,users,pages_per_visit,bounce_rate,avg_visit_duration".to_string(),
+        "display_date,visits,users,pages_per_visit,bounce_rate,time_on_site".to_string(),
     );
-    if let Some(f) = date_from {
-        params.insert("date_from".to_string(), f.to_string());
-    }
-    if let Some(t) = date_to {
-        params.insert("date_to".to_string(), t.to_string());
+    if let Some(dt) = date {
+        params.insert("display_date".to_string(), dt.to_string());
     }
     if forecast {
         params.insert("include_forecasted_items".to_string(), "true".to_string());
@@ -70,8 +64,7 @@ pub async fn daily(
 pub async fn weekly(
     client: &SemrushClient,
     target: &str,
-    date_from: Option<&str>,
-    date_to: Option<&str>,
+    date: Option<&str>,
     forecast: bool,
     country: Option<&str>,
     device: Option<&str>,
@@ -80,13 +73,10 @@ pub async fn weekly(
     params.insert("target".to_string(), target.to_string());
     params.insert(
         "export_columns".to_string(),
-        "date,visits,users,pages_per_visit,bounce_rate,avg_visit_duration".to_string(),
+        "display_date,visits,users,pages_per_visit,bounce_rate,time_on_site".to_string(),
     );
-    if let Some(f) = date_from {
-        params.insert("date_from".to_string(), f.to_string());
-    }
-    if let Some(t) = date_to {
-        params.insert("date_to".to_string(), t.to_string());
+    if let Some(dt) = date {
+        params.insert("display_date".to_string(), dt.to_string());
     }
     if forecast {
         params.insert("include_forecasted_items".to_string(), "true".to_string());

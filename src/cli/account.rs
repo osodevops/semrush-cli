@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum AccountCommand {
     /// Check API unit balance
     Balance,
@@ -12,7 +12,7 @@ pub enum AccountCommand {
     },
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum AuthCommand {
     /// Set up API key authentication
     Setup,

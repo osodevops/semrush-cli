@@ -104,15 +104,20 @@ async fn main() {
         return;
     }
 
-    // All remaining executable API commands need an API key
-    let api_key = match config.resolve_api_key(cli.api_key.as_deref()) {
-        Some(key) => key,
-        None => {
-            AppError::AuthFailed {
-                message: "No API key provided. Set SEMRUSH_API_KEY, use --api-key, or run `semrush account auth setup`.".to_string(),
+    let api_key = if command_requires_api_key(&cli.command) {
+        match config.resolve_api_key(cli.api_key.as_deref()) {
+            Some(key) => key,
+            None => {
+                AppError::AuthFailed {
+                    message: "No API key provided. Set SEMRUSH_API_KEY, use --api-key, or run `semrush account auth setup`.".to_string(),
+                }
+                .print_and_exit();
             }
-            .print_and_exit();
         }
+    } else {
+        config
+            .resolve_api_key(cli.api_key.as_deref())
+            .unwrap_or_default()
     };
 
     let client = api::client::SemrushClient::new(api_key, config.rate_limit.requests_per_second);
@@ -208,8 +213,17 @@ async fn run_api_command(
 /// Build a deterministic cache key string from command params (excluding API key).
 fn build_cache_key(cli: &Cli, report_type_key: &str) -> String {
     format!(
-        "{}|db={}|limit={}|offset={}",
-        report_type_key, cli.database, cli.limit, cli.offset
+        "{}|db={}|limit={}|offset={}|command={:?}",
+        report_type_key, cli.database, cli.limit, cli.offset, cli.command
+    )
+}
+
+fn command_requires_api_key(command: &Commands) -> bool {
+    !matches!(
+        command,
+        Commands::Local {
+            command: cli::local::LocalCommand::MapRank { .. }
+        }
     )
 }
 
@@ -639,7 +653,7 @@ async fn execute_backlink(
         BacklinkCommand::Compare {
             targets,
             target_type,
-        } => api::v1_backlinks::compare(client, targets, target_type).await,
+        } => api::v1_backlinks::compare(client, targets, target_type, cli.limit, cli.offset).await,
 
         BacklinkCommand::Batch {
             targets,
@@ -709,14 +723,12 @@ async fn execute_trends(
                 country.as_deref(),
                 device.as_deref(),
                 date.as_deref(),
-                cli.limit,
             )
             .await
         }
         TrendsCommand::Daily {
             target,
-            date_from,
-            date_to,
+            date,
             forecast,
             country,
             device,
@@ -724,8 +736,7 @@ async fn execute_trends(
             api::v3_trends::daily(
                 client,
                 target,
-                date_from.as_deref(),
-                date_to.as_deref(),
+                date.as_deref(),
                 *forecast,
                 country.as_deref(),
                 device.as_deref(),
@@ -734,8 +745,7 @@ async fn execute_trends(
         }
         TrendsCommand::Weekly {
             target,
-            date_from,
-            date_to,
+            date,
             forecast,
             country,
             device,
@@ -743,8 +753,7 @@ async fn execute_trends(
             api::v3_trends::weekly(
                 client,
                 target,
-                date_from.as_deref(),
-                date_to.as_deref(),
+                date.as_deref(),
                 *forecast,
                 country.as_deref(),
                 device.as_deref(),
@@ -885,25 +894,16 @@ async fn execute_project(
 ) -> Result<Vec<serde_json::Value>, AppError> {
     use cli::project::ProjectCommand;
 
-    // v4 APIs need OAuth2 token — check env var for now
-    let oauth_token = std::env::var("SEMRUSH_OAUTH_TOKEN").map_err(|_| AppError::AuthFailed {
-        message: "OAuth2 token required for v4 API. Set SEMRUSH_OAUTH_TOKEN or run `semrush account auth setup-oauth`.".to_string(),
-    })?;
-
     match command {
-        ProjectCommand::List => api::v4_projects::list(client, &oauth_token).await,
-        ProjectCommand::Get { project_id } => {
-            api::v4_projects::get(client, &oauth_token, project_id).await
-        }
+        ProjectCommand::List => api::v4_projects::list(client).await,
+        ProjectCommand::Get { project_id } => api::v4_projects::get(client, project_id).await,
         ProjectCommand::Create { name, domain } => {
-            api::v4_projects::create(client, &oauth_token, name, domain).await
+            api::v4_projects::create(client, name, domain).await
         }
         ProjectCommand::Update { project_id, name } => {
-            api::v4_projects::update(client, &oauth_token, project_id, name.as_deref()).await
+            api::v4_projects::update(client, project_id, name).await
         }
-        ProjectCommand::Delete { project_id } => {
-            api::v4_projects::delete(client, &oauth_token, project_id).await
-        }
+        ProjectCommand::Delete { project_id } => api::v4_projects::delete(client, project_id).await,
     }
 }
 
@@ -913,42 +913,81 @@ async fn execute_local(
 ) -> Result<Vec<serde_json::Value>, AppError> {
     use cli::local::{ListingCommand, LocalCommand, MapRankCommand};
 
-    let oauth_token = std::env::var("SEMRUSH_OAUTH_TOKEN").map_err(|_| AppError::AuthFailed {
-        message: "OAuth2 token required for v4 API. Set SEMRUSH_OAUTH_TOKEN or run `semrush account auth setup-oauth`.".to_string(),
-    })?;
-
     match command {
         LocalCommand::Listing { command } => match command {
-            ListingCommand::List => api::v4_local::listing_list(client, &oauth_token).await,
+            ListingCommand::List => api::v4_local::listing_list(client).await,
             ListingCommand::Get { location_id } => {
-                api::v4_local::listing_get(client, &oauth_token, location_id).await
+                api::v4_local::listing_get(client, location_id).await
             }
             ListingCommand::Create { json } => {
                 let body = parse_json_input(json.as_deref())?;
-                api::v4_local::listing_create(client, &oauth_token, &body).await
+                api::v4_local::listing_create(client, &body).await
             }
             ListingCommand::Update { location_id, json } => {
                 let body = parse_json_input(json.as_deref())?;
-                api::v4_local::listing_update(client, &oauth_token, location_id, &body).await
+                api::v4_local::listing_update(client, location_id, &body).await
             }
             ListingCommand::Delete { location_id } => {
-                api::v4_local::listing_delete(client, &oauth_token, location_id).await
+                api::v4_local::listing_delete(client, location_id).await
             }
         },
-        LocalCommand::MapRank { command } => match command {
-            MapRankCommand::Campaigns => {
-                api::v4_local::map_rank_campaigns(client, &oauth_token).await
+        LocalCommand::MapRank { command } => {
+            let oauth_token =
+                std::env::var("SEMRUSH_OAUTH_TOKEN").map_err(|_| AppError::AuthFailed {
+                    message: "OAuth2 token required for Map Rank Tracker. Set SEMRUSH_OAUTH_TOKEN."
+                        .to_string(),
+                })?;
+
+            match command {
+                MapRankCommand::Campaigns => {
+                    api::v4_local::map_rank_campaigns(client, &oauth_token).await
+                }
+                MapRankCommand::Keywords {
+                    campaign_id,
+                    report_date,
+                } => {
+                    api::v4_local::map_rank_keywords(
+                        client,
+                        &oauth_token,
+                        campaign_id,
+                        report_date.as_deref(),
+                    )
+                    .await
+                }
+                MapRankCommand::Heatmap {
+                    campaign_id,
+                    keyword_id,
+                    cid,
+                    place_ids,
+                    report_date,
+                } => {
+                    api::v4_local::map_rank_heatmap(
+                        client,
+                        &oauth_token,
+                        campaign_id,
+                        keyword_id,
+                        cid.as_deref(),
+                        place_ids,
+                        report_date.as_deref(),
+                    )
+                    .await
+                }
+                MapRankCommand::Competitors {
+                    campaign_id,
+                    keyword_id,
+                    report_date,
+                } => {
+                    api::v4_local::map_rank_competitors(
+                        client,
+                        &oauth_token,
+                        campaign_id,
+                        keyword_id,
+                        report_date,
+                    )
+                    .await
+                }
             }
-            MapRankCommand::Keywords { campaign_id } => {
-                api::v4_local::map_rank_keywords(client, &oauth_token, campaign_id).await
-            }
-            MapRankCommand::Heatmap { campaign_id } => {
-                api::v4_local::map_rank_heatmap(client, &oauth_token, campaign_id).await
-            }
-            MapRankCommand::Competitors { campaign_id } => {
-                api::v4_local::map_rank_competitors(client, &oauth_token, campaign_id).await
-            }
-        },
+        }
     }
 }
 
@@ -1077,5 +1116,28 @@ async fn handle_account(command: &cli::account::AccountCommand, _cli: &Cli, conf
                 }
             }
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cache_key_includes_command_arguments() {
+        let first = Cli::try_parse_from(["semrush", "domain", "overview", "example.com"]).unwrap();
+        let second = Cli::try_parse_from(["semrush", "domain", "overview", "example.org"]).unwrap();
+
+        assert_ne!(
+            build_cache_key(&first, "domain_overview"),
+            build_cache_key(&second, "domain_overview")
+        );
+    }
+
+    #[test]
+    fn map_rank_commands_do_not_require_api_key() {
+        let cli = Cli::try_parse_from(["semrush", "local", "map-rank", "campaigns"]).unwrap();
+
+        assert!(!command_requires_api_key(&cli.command));
     }
 }

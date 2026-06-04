@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum ProjectCommand {
     /// List all projects
     List,
@@ -29,7 +29,7 @@ pub enum ProjectCommand {
 
         /// New project name
         #[arg(long)]
-        name: Option<String>,
+        name: String,
     },
 
     /// Delete a project

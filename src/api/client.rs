@@ -58,6 +58,18 @@ impl SemrushClient {
         csv_parser::parse_csv_response(&body)
     }
 
+    /// Execute a v1 Backlinks API request with repeated query params.
+    pub async fn v1_backlinks_pairs(
+        &self,
+        report_type: &str,
+        params: &[(String, String)],
+    ) -> Result<Vec<serde_json::Value>, AppError> {
+        let body = self
+            .request_csv_pairs(V1_BACKLINKS_BASE, report_type, params)
+            .await?;
+        csv_parser::parse_csv_response(&body)
+    }
+
     /// Execute a v3 Trends API request and return parsed JSON rows.
     /// Trends API returns CSV like other v3 endpoints.
     pub async fn v3_trends(
@@ -88,6 +100,21 @@ impl SemrushClient {
         for (k, v) in params {
             query.push((k.clone(), v.clone()));
         }
+
+        self.request_with_retry(base_url, &query).await
+    }
+
+    async fn request_csv_pairs(
+        &self,
+        base_url: &str,
+        report_type: &str,
+        params: &[(String, String)],
+    ) -> Result<String, AppError> {
+        let mut query: Vec<(String, String)> = vec![
+            ("type".to_string(), report_type.to_string()),
+            ("key".to_string(), self.api_key.clone()),
+        ];
+        query.extend(params.iter().cloned());
 
         self.request_with_retry(base_url, &query).await
     }
@@ -186,7 +213,131 @@ impl SemrushClient {
         &self.api_key
     }
 
-    // ── v4 JSON methods (OAuth2 bearer token auth) ─────────────
+    // ── JSON API methods ───────────────────────────────────────
+
+    pub async fn json_get_with_key(&self, url: &str) -> Result<serde_json::Value, AppError> {
+        self.limiter.until_ready().await;
+        let response = self
+            .http
+            .get(url)
+            .query(&[("key", self.api_key.as_str())])
+            .send()
+            .await?;
+        self.handle_json_response(response).await
+    }
+
+    pub async fn json_post_with_key(
+        &self,
+        url: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, AppError> {
+        self.limiter.until_ready().await;
+        let response = self
+            .http
+            .post(url)
+            .query(&[("key", self.api_key.as_str())])
+            .json(body)
+            .send()
+            .await?;
+        self.handle_json_response(response).await
+    }
+
+    pub async fn json_put_with_key(
+        &self,
+        url: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, AppError> {
+        self.limiter.until_ready().await;
+        let response = self
+            .http
+            .put(url)
+            .query(&[("key", self.api_key.as_str())])
+            .json(body)
+            .send()
+            .await?;
+        self.handle_json_response(response).await
+    }
+
+    pub async fn json_delete_with_key(&self, url: &str) -> Result<serde_json::Value, AppError> {
+        self.limiter.until_ready().await;
+        let response = self
+            .http
+            .delete(url)
+            .query(&[("key", self.api_key.as_str())])
+            .send()
+            .await?;
+
+        let status = response.status();
+        if status == reqwest::StatusCode::NO_CONTENT || status.is_success() {
+            return Ok(serde_json::json!({"status": "deleted"}));
+        }
+        self.handle_json_response(response).await
+    }
+
+    pub async fn json_get_with_apikey_header(
+        &self,
+        url: &str,
+    ) -> Result<serde_json::Value, AppError> {
+        self.limiter.until_ready().await;
+        let response = self
+            .http
+            .get(url)
+            .header("Authorization", format!("Apikey {}", self.api_key))
+            .send()
+            .await?;
+        self.handle_json_response(response).await
+    }
+
+    pub async fn json_post_with_apikey_header(
+        &self,
+        url: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, AppError> {
+        self.limiter.until_ready().await;
+        let response = self
+            .http
+            .post(url)
+            .header("Authorization", format!("Apikey {}", self.api_key))
+            .json(body)
+            .send()
+            .await?;
+        self.handle_json_response(response).await
+    }
+
+    pub async fn json_put_with_apikey_header(
+        &self,
+        url: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, AppError> {
+        self.limiter.until_ready().await;
+        let response = self
+            .http
+            .put(url)
+            .header("Authorization", format!("Apikey {}", self.api_key))
+            .json(body)
+            .send()
+            .await?;
+        self.handle_json_response(response).await
+    }
+
+    pub async fn json_delete_with_apikey_header(
+        &self,
+        url: &str,
+    ) -> Result<serde_json::Value, AppError> {
+        self.limiter.until_ready().await;
+        let response = self
+            .http
+            .delete(url)
+            .header("Authorization", format!("Apikey {}", self.api_key))
+            .send()
+            .await?;
+
+        let status = response.status();
+        if status == reqwest::StatusCode::NO_CONTENT || status.is_success() {
+            return Ok(serde_json::json!({"status": "deleted"}));
+        }
+        self.handle_json_response(response).await
+    }
 
     pub async fn v4_json_get(
         &self,
@@ -260,7 +411,7 @@ impl SemrushClient {
 
         if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
             return Err(AppError::AuthFailed {
-                message: "OAuth2 token invalid or expired. Run `semrush account auth setup-oauth`."
+                message: "Semrush API authorization failed. Check your API key or OAuth2 token."
                     .to_string(),
             });
         }

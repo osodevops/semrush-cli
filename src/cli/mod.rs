@@ -10,7 +10,7 @@ pub mod trends;
 
 use clap::{Parser, Subcommand};
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 #[command(
     name = "semrush",
     version,
@@ -68,7 +68,7 @@ pub struct Cli {
     pub command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Domain analytics — overview, organic, paid, competitors, etc.
     Domain {
@@ -137,7 +137,7 @@ pub enum Commands {
     },
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum CacheCommand {
     /// Clear all cached responses
     Clear,

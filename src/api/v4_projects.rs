@@ -3,11 +3,8 @@ use crate::error::AppError;
 
 const V4_PROJECTS_BASE: &str = "https://api.semrush.com/management/v1/projects";
 
-pub async fn list(
-    client: &SemrushClient,
-    oauth_token: &str,
-) -> Result<Vec<serde_json::Value>, AppError> {
-    let response = client.v4_json_get(V4_PROJECTS_BASE, oauth_token).await?;
+pub async fn list(client: &SemrushClient) -> Result<Vec<serde_json::Value>, AppError> {
+    let response = client.json_get_with_key(V4_PROJECTS_BASE).await?;
 
     // Response is either an array or an object with a "data" field
     match response {
@@ -25,17 +22,15 @@ pub async fn list(
 
 pub async fn get(
     client: &SemrushClient,
-    oauth_token: &str,
     project_id: &str,
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let url = format!("{V4_PROJECTS_BASE}/{project_id}");
-    let response = client.v4_json_get(&url, oauth_token).await?;
+    let response = client.json_get_with_key(&url).await?;
     Ok(vec![response])
 }
 
 pub async fn create(
     client: &SemrushClient,
-    oauth_token: &str,
     name: &str,
     domain: &str,
 ) -> Result<Vec<serde_json::Value>, AppError> {
@@ -43,37 +38,35 @@ pub async fn create(
         "project_name": name,
         "url": domain,
     });
-    let url = V4_PROJECTS_BASE;
-    let response = client.v4_json_post(url, oauth_token, &body).await?;
+    let response = client.json_post_with_key(V4_PROJECTS_BASE, &body).await?;
     Ok(vec![response])
 }
 
 pub async fn update(
     client: &SemrushClient,
-    oauth_token: &str,
     project_id: &str,
-    name: Option<&str>,
+    name: &str,
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let mut body = serde_json::Map::new();
-    if let Some(n) = name {
-        body.insert(
-            "project_name".to_string(),
-            serde_json::Value::String(n.to_string()),
-        );
-    }
-    let url = format!("{V4_PROJECTS_BASE}/{project_id}");
+    body.insert(
+        "project_id".to_string(),
+        serde_json::Value::String(project_id.to_string()),
+    );
+    body.insert(
+        "project_name".to_string(),
+        serde_json::Value::String(name.to_string()),
+    );
     let response = client
-        .v4_json_patch(&url, oauth_token, &serde_json::Value::Object(body))
+        .json_put_with_key(V4_PROJECTS_BASE, &serde_json::Value::Object(body))
         .await?;
     Ok(vec![response])
 }
 
 pub async fn delete(
     client: &SemrushClient,
-    oauth_token: &str,
     project_id: &str,
 ) -> Result<Vec<serde_json::Value>, AppError> {
     let url = format!("{V4_PROJECTS_BASE}/{project_id}");
-    client.v4_json_delete(&url, oauth_token).await?;
+    client.json_delete_with_key(&url).await?;
     Ok(vec![serde_json::json!({"deleted": project_id})])
 }

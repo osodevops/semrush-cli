@@ -239,8 +239,7 @@ async fn execute_step(
                 .map(|s| s.trim().to_string())
                 .collect();
             let country = get_str("country");
-            crate::api::v3_trends::summary(client, &targets, country.as_deref(), None, None, limit)
-                .await?
+            crate::api::v3_trends::summary(client, &targets, country.as_deref(), None, None).await?
         }
         _ => {
             return Err(AppError::InvalidParams {

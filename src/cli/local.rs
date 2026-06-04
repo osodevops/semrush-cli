@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum LocalCommand {
     /// Listing Management — manage local business listings
     Listing {
@@ -16,7 +16,7 @@ pub enum LocalCommand {
     },
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum ListingCommand {
     /// List all locations
     List,
@@ -51,7 +51,7 @@ pub enum ListingCommand {
     },
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum MapRankCommand {
     /// List Map Rank Tracker campaigns
     Campaigns,
@@ -60,17 +60,45 @@ pub enum MapRankCommand {
     Keywords {
         /// Campaign ID
         campaign_id: String,
+
+        /// Report date to query, if not using the latest report
+        #[arg(long)]
+        report_date: Option<String>,
     },
 
-    /// Get heatmap data for a campaign
+    /// Get heatmap data for a campaign keyword
     Heatmap {
         /// Campaign ID
         campaign_id: String,
+
+        /// Keyword ID
+        #[arg(long)]
+        keyword_id: String,
+
+        /// Google business CID. Either --cid or --place-ids is required.
+        #[arg(long)]
+        cid: Option<String>,
+
+        /// Google Place IDs. Either --cid or --place-ids is required.
+        #[arg(long, value_delimiter = ',')]
+        place_ids: Vec<String>,
+
+        /// Report date to query, if not using the latest report
+        #[arg(long)]
+        report_date: Option<String>,
     },
 
-    /// Get competitors for a campaign
+    /// Get competitors for a campaign keyword
     Competitors {
         /// Campaign ID
         campaign_id: String,
+
+        /// Keyword ID
+        #[arg(long)]
+        keyword_id: String,
+
+        /// Report date in ISO-8601 format
+        #[arg(long)]
+        report_date: String,
     },
 }

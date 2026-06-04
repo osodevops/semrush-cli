@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum OverviewCommand {
     /// Get Semrush Rank — top domains by visibility
     Rank,
